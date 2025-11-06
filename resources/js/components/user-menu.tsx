@@ -1,5 +1,5 @@
-import type { SharedData } from "@/types/shared";
-import { usePage } from "@inertiajs/react";
+import type { SharedData } from "@/types/shared"
+import { usePage } from "@inertiajs/react"
 import {
   Menu,
   MenuContent,
@@ -8,13 +8,13 @@ import {
   MenuLabel,
   MenuSection,
   MenuSeparator,
-} from "./ui/menu";
-import { Button } from "./ui/button";
-import { Avatar } from "./ui/avatar";
-import { ArrowRightEndOnRectangleIcon } from "@heroicons/react/24/outline";
+} from "./ui/menu"
+import { Button } from "./ui/button"
+import { Avatar } from "./ui/avatar"
+import { ArrowRightEndOnRectangleIcon } from "@heroicons/react/24/outline"
 
 export function UserMenu() {
-  const { auth } = usePage<SharedData>().props;
+  const { auth } = usePage<SharedData>().props
   return (
     <Menu>
       <Button size="sq-md" intent="plain" isCircle aria-label="Open menu">
@@ -48,5 +48,5 @@ export function UserMenu() {
         </MenuItem>
       </MenuContent>
     </Menu>
-  );
+  )
 }
