@@ -24,6 +24,7 @@ class TeamController extends Controller
     {
         return inertia('teams/show', [
             'team' => fn () => $team,
+            'can_update_team' => fn () => $request->user()->can('update', $team),
         ]);
     }
 

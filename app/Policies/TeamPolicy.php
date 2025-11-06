@@ -46,7 +46,7 @@ class TeamPolicy
             return false;
         }
 
-        return true;
+        return $user->can('update team');
     }
 
     /**

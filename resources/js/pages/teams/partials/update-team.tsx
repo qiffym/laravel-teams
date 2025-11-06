@@ -8,8 +8,13 @@ import { Input } from "@/components/ui/input"
 import { Form } from "react-aria-components"
 import { Button } from "@/components/ui/button"
 
+type UpdateTeamProps = {
+  team: Team;
+  can_update_team: boolean;
+}
+
 export function UpdateTeam() {
-  const { team } = usePage<{ team: Team }>().props
+  const { team, can_update_team } = usePage<UpdateTeamProps>().props
   const { data, setData, put, processing, errors } = useForm({
     name: team.name,
   })
@@ -30,13 +35,14 @@ export function UpdateTeam() {
             value={data.name}
             onChange={(value) => setData("name", value)}
             isRequired
+            isReadOnly={!can_update_team}
           >
             <Label>Team Name</Label>
             <Input />
             <FieldError />
           </TextField>
 
-          <Button type="submit" isPending={processing} className="mt-4">
+          <Button type="submit" isPending={processing} isDisabled={!can_update_team} className="mt-4">
             {processing ? "Updating..." : "Update Team"}
           </Button>
         </Form>

@@ -13,13 +13,16 @@ class UserObserver
     public function created(User $user): void
     {
         $user->teams()->attach(
-            $team = Team::create([
+            $team = Team::query()->create([
                 'owner_id' => $user->id,
                 'name' => strtok($user->name, " ") . "'s Team",
             ])
         );
 
         $user->currentTeam()->associate($team)->save();
+
+        setPermissionsTeamId($team->id);
+        $user->assignRole('team admin');
     }
 
     /**
