@@ -8,17 +8,12 @@ use Illuminate\Auth\Access\Response;
 
 class TeamPolicy
 {
+    /**
+     * Determine whether the user can set the model as current.
+     */
     public function setCurrent(User $user, Team $team): bool
     {
         return $user->teams->contains($team);
-    }
-
-    /**
-     * Determine whether the user can view any models.
-     */
-    public function viewAny(User $user): bool
-    {
-        return false;
     }
 
     /**
@@ -26,7 +21,7 @@ class TeamPolicy
      */
     public function view(User $user, Team $team): bool
     {
-        return false;
+        return $user->teams->contains($team);
     }
 
     /**
@@ -50,26 +45,17 @@ class TeamPolicy
     }
 
     /**
-     * Determine whether the user can delete the model.
+     * Determine whether the user can leave the model.
      */
-    public function delete(User $user, Team $team): bool
+    public function leave(User $user, Team $team): bool
     {
-        return false;
-    }
+        if (!$user->teams->contains($team)) {
+            return false;
+        }
 
-    /**
-     * Determine whether the user can restore the model.
-     */
-    public function restore(User $user, Team $team): bool
-    {
-        return false;
-    }
-
-    /**
-     * Determine whether the user can permanently delete the model.
-     */
-    public function forceDelete(User $user, Team $team): bool
-    {
-        return false;
+        if ($team->owner->id === $user->ownedTeam->id) {
+            return false;
+        }
+        return true;
     }
 }
