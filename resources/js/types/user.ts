@@ -8,5 +8,6 @@ export interface User {
   email_verified_at: string | null
   teams: Team[]
   current_team: Team
+  permissions: string[]
   [key: string]: unknown
 }

@@ -6,24 +6,25 @@ import { Container } from "@/components/ui/container"
 import { UpdateTeam } from "@/pages/teams/partials/update-team"
 import { LeaveTeam } from "@/pages/teams/partials/leave-team"
 import { DeleteTeam } from "@/pages/teams/partials/delete-team"
+import type {Auth} from "@/types/auth";
+import {usePermissions} from "@/hooks/use-permissions";
 
 interface Props {
   team: Team
-  can_update_team: boolean
-  can_leave_team: boolean
-  can_delete_team: boolean
+  auth: Auth
 }
 
-export default function Show({ team, can_update_team, can_leave_team, can_delete_team }: Props) {
+export default function Show({ team, auth }: Props) {
+  const can = usePermissions(auth?.user?.permissions!)
   return (
     <>
       <Head title={team.name} />
       <Header title={team.name} />
       <Container>
         <div className="flex flex-col gap-y-6">
-          {can_update_team && <UpdateTeam team={team} />}
-          {can_leave_team && <LeaveTeam team={team} />}
-          {can_delete_team && <DeleteTeam team={team} />}
+          {can('update_team') && <UpdateTeam team={team} />}
+          {can('leave_team') && <LeaveTeam team={team} />}
+          {can('delete_team') && <DeleteTeam team={team} />}
         </div>
       </Container>
     </>

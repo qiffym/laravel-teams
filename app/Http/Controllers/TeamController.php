@@ -25,9 +25,6 @@ class TeamController extends Controller
         Gate::authorize('view', $team);
         return inertia('teams/show', [
             'team' => fn () => $team,
-            'can_update_team' => fn () => auth()->user()->can('update', $team),
-            'can_leave_team' => fn () => auth()->user()->can('leave', $team),
-            'can_delete_team' => fn () => auth()->user()->can('delete', $team),
         ]);
     }
 
