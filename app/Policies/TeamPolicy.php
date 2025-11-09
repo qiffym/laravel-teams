@@ -58,4 +58,18 @@ class TeamPolicy
         }
         return true;
     }
+
+    /**
+     * Determine whether the user can delete the model.
+     */
+    public function delete(User $user, Team $team): bool
+    {
+        if (!$user->teams->contains($team)) {
+            return false;
+        }
+        if ($user->ownedTeams->count() === 1) {
+            return false;
+        }
+        return $user->can('delete team');
+    }
 }

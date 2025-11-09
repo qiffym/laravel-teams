@@ -1,5 +1,5 @@
 import type React from "react"
-import { useForm, usePage } from "@inertiajs/react"
+import { useForm } from "@inertiajs/react"
 import type { Team } from "@/types/team"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { TextField } from "@/components/ui/text-field"
@@ -12,7 +12,7 @@ interface Props {
   team: Team
 }
 
-export function UpdateTeam({team}: Props) {
+export function UpdateTeam({ team }: Props) {
   const { data, setData, put, processing, errors } = useForm({
     name: team.name,
   })
@@ -39,11 +39,7 @@ export function UpdateTeam({team}: Props) {
             <FieldError />
           </TextField>
 
-          <Button
-            type="submit"
-            isPending={processing}
-            className="mt-4"
-          >
+          <Button type="submit" isPending={processing} className="mt-4">
             {processing ? "Updating..." : "Update Team"}
           </Button>
         </Form>

@@ -20,13 +20,14 @@ class TeamController extends Controller
         return to_route('teams.show', $anotherTeam);
     }
 
-    public function show(Request $request, Team $team)
+    public function show(Team $team)
     {
         Gate::authorize('view', $team);
         return inertia('teams/show', [
             'team' => fn () => $team,
-            'can_update_team' => fn () => $request->user()->can('update', $team),
-            'can_leave_team' => fn () => $request->user()->can('leave', $team),
+            'can_update_team' => fn () => auth()->user()->can('update', $team),
+            'can_leave_team' => fn () => auth()->user()->can('leave', $team),
+            'can_delete_team' => fn () => auth()->user()->can('delete', $team),
         ]);
     }
 
@@ -45,6 +46,10 @@ class TeamController extends Controller
     {
         Gate::authorize('leave', $team);
 
+        $request->validate([
+            'password' => 'required|current_password',
+        ]);
+
         $user = $request->user();
 
         $user->teams()->detach($team);
@@ -55,5 +60,24 @@ class TeamController extends Controller
         flash('You have left the team.');
 
         return to_route('teams.show', $user->currentTeam);
+    }
+
+    public function destroy(Request $request, Team $team)
+    {
+        Gate::authorize('delete', $team);
+
+        $request->validate([
+            'password' => 'required|current_password',
+        ]);
+
+        $user = $request->user();
+
+        $user->teams()->detach($team);
+
+        $user->currentTeam()->associate($user->latestOwnedTeam)->save();
+
+        flash('Team deleted successfully.');
+
+        return to_route('teams.show', $user->latestOwnedTeam);
     }
 }

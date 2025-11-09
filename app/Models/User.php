@@ -76,4 +76,14 @@ class User extends Authenticatable
     {
         return $this->hasOne(Team::class, 'owner_id');
     }
+
+    public function ownedTeams(): Relations\HasMany
+    {
+        return $this->hasMany(Team::class, 'owner_id');
+    }
+
+    public function latestOwnedTeam(): Relations\HasOne
+    {
+        return $this->ownedTeams()->one()->latestOfMany();
+    }
 }

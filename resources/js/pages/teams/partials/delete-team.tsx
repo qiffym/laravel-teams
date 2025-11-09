@@ -21,7 +21,7 @@ interface Props {
   team: Team
 }
 
-export function LeaveTeam({ team }: Props) {
+export function DeleteTeam({ team }: Props) {
   const [open, setOpen] = useState(false)
   const {
     data,
@@ -32,32 +32,33 @@ export function LeaveTeam({ team }: Props) {
   } = useForm({
     password: "",
   })
-  function leave(e: React.FormEvent<HTMLFormElement>) {
+  function destroyTeam(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
 
-    destroy(route("teams.leave", [team]), {
+    destroy(route("teams.destroy", [team]), {
       onSuccess: () => setOpen(false),
     })
   }
   return (
     <Card>
       <CardHeader
-        title="Leave Team"
-        description="You're about to leave team, this action can not be undone"
+        title="Delete Team"
+        description="You're about to delete team, this action can not be undone"
       />
       <CardFooter>
         <Button intent="danger" isPending={processing} onPress={() => setOpen(true)}>
-          Leave Team
+          Delete Team
         </Button>
         <ModalContent role="alertdialog" isOpen={open} onOpenChange={setOpen}>
           <ModalHeader>
-            <ModalTitle>Leave Team</ModalTitle>
+            <ModalTitle>Delete Team</ModalTitle>
             <ModalDescription>
-              Are you sure you want to leave this team? Once you leave the team, you will no longer
-              have access to its resources.
+              Are you sure you want to delete this team? Once a team is deleted, all of its resources
+              and data will be permanently deleted. Please enter your password to confirm you would
+              like to permanently delete this team.
             </ModalDescription>
           </ModalHeader>
-          <Form onSubmit={leave} validationErrors={errors}>
+          <Form onSubmit={destroyTeam} validationErrors={errors}>
             <ModalBody>
               <TextField
                 type="password"
@@ -76,7 +77,7 @@ export function LeaveTeam({ team }: Props) {
                 Cancel
               </Button>
               <Button intent="danger" type="submit" isPending={processing}>
-                {processing ? "Leaving..." : "Leave Team"}
+                {processing ? "Deleting..." : "Delete Team"}
               </Button>
             </ModalFooter>
           </Form>
