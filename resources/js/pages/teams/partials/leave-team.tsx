@@ -16,6 +16,7 @@ import { Form } from "react-aria-components"
 import { TextField } from "@/components/ui/text-field"
 import { FieldError, Label } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { Loader } from "@/components/ui/loader"
 
 interface Props {
   team: Team
@@ -46,7 +47,7 @@ export function LeaveTeam({ team }: Props) {
         description="You're about to leave team, this action can not be undone"
       />
       <CardFooter>
-        <Button intent="danger" isPending={processing} onPress={() => setOpen(true)}>
+        <Button intent="danger" onPress={() => setOpen(true)}>
           Leave Team
         </Button>
         <ModalContent role="alertdialog" isOpen={open} onOpenChange={setOpen}>
@@ -76,6 +77,7 @@ export function LeaveTeam({ team }: Props) {
                 Cancel
               </Button>
               <Button intent="danger" type="submit" isPending={processing}>
+                {processing && <Loader />}
                 {processing ? "Leaving..." : "Leave Team"}
               </Button>
             </ModalFooter>

@@ -7,6 +7,8 @@ import { FieldError, Label } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Form } from "react-aria-components"
 import { Button } from "@/components/ui/button"
+import { Loader } from "@/components/ui/loader"
+import { PencilSquareIcon } from "@heroicons/react/24/outline"
 
 interface Props {
   team: Team
@@ -40,6 +42,7 @@ export function UpdateTeam({ team }: Props) {
           </TextField>
 
           <Button type="submit" isPending={processing} className="mt-4">
+            {processing ? <Loader /> : <PencilSquareIcon />}
             {processing ? "Updating..." : "Update Team"}
           </Button>
         </Form>
