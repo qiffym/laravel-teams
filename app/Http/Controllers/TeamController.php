@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\TeamMemberResource;
 use App\Models\Team;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -23,8 +24,17 @@ class TeamController extends Controller
     public function show(Team $team)
     {
         Gate::authorize('view', $team);
+
+        $members = collect([
+            ...$team->members,
+            ...$team->invites,
+        ])->map(function ($member) use ($team) {
+            return new TeamMemberResource($member, $team);
+        });
+
         return inertia('teams/show', [
             'team' => fn () => $team,
+            'members' => fn () => $members,
         ]);
     }
 

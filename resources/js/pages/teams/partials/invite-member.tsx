@@ -3,6 +3,7 @@ import { FieldError, Label } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Loader } from "@/components/ui/loader"
 import {
+  Modal,
   ModalBody,
   ModalClose,
   ModalContent,
@@ -31,15 +32,16 @@ export function InviteMember({ team }: Props) {
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
     post(route("team-invites.store", [team]), {
+      preserveScroll: true,
       onSuccess: () => {
-        reset()
+        reset("email")
         setOpen(false)
       },
     })
   }
   return (
-    <>
-      <Button size="sm" onPress={() => setOpen(true)} intent="outline">
+    <Modal>
+      <Button intent="secondary" size="sm" onPress={() => setOpen(true)}>
         <UserPlusIcon /> Invite Member
       </Button>
       <ModalContent isOpen={open} onOpenChange={setOpen}>
@@ -72,6 +74,6 @@ export function InviteMember({ team }: Props) {
           </ModalFooter>
         </Form>
       </ModalContent>
-    </>
+    </Modal>
   )
 }
