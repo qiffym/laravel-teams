@@ -36,7 +36,7 @@ class AuthenticatedUserResource extends JsonResource
                 ...($this->can('update', $this->currentTeam) ? ['update_team'] : []),
                 ...($this->can('leave', $this->currentTeam) ? ['leave_team'] : []),
                 ...($this->can('delete', $this->currentTeam) ? ['delete_team'] : []),
-                ...collect($this->getPermissionsViaRoles()->pluck('name'))->diff(['update team', 'delete team', 'invite users to team', 'remove users from team']),
+                ...collect($this->getPermissionsViaRoles()->pluck('name'))->diff(['update team', 'delete team']),
             ],
         ];
     }

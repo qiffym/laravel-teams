@@ -7,6 +7,7 @@ use App\Models\TeamInvite;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use App\Rules\NotSelfEmail;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 class TeamInviteController extends Controller
@@ -32,6 +33,8 @@ class TeamInviteController extends Controller
      */
     public function store(Request $request, Team $team)
     {
+        Gate::authorize('invite users to team');
+
         $validatedEmail = $request->validate([
             'email' => [
             'required',
@@ -82,8 +85,14 @@ class TeamInviteController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(TeamInvite $teamInvite)
+    public function destroy(Team $team, TeamInvite $teamInvite)
     {
-        //
+        Gate::authorize('invite users to team');
+
+        $teamInvite->delete();
+
+        flash('You have canceled the invitation.');
+
+        return back();
     }
 }
