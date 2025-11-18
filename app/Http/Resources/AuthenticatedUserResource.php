@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\User;
+use App\TeamPermissionEnum;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -32,12 +33,32 @@ class AuthenticatedUserResource extends JsonResource
                 'name' => $this->currentTeam->name,
                 'owner_id' => $this->currentTeam->owner_id,
             ],
-            'permissions' => [
-                ...($this->can('update', $this->currentTeam) ? ['update_team'] : []),
-                ...($this->can('leave', $this->currentTeam) ? ['leave_team'] : []),
-                ...($this->can('delete', $this->currentTeam) ? ['delete_team'] : []),
-                ...collect($this->getPermissionsViaRoles()->pluck('name'))->diff(['update team', 'delete team']),
-            ],
+            'permissions' => $this->getUserPermissions(),
         ];
+    }
+
+    private function getUserPermissions(): array
+    {
+        $permissions = [];
+        
+        // Add policy-based permissions
+        $policyPermissions = [
+            'update' => TeamPermissionEnum::UPDATE_TEAM->value,
+            'leave' => TeamPermissionEnum::LEAVE_TEAM->value,
+            'delete' => TeamPermissionEnum::DELETE_TEAM->value,
+        ];
+        foreach ($policyPermissions as $ability => $permission) {
+            if ($this->can($ability, $this->currentTeam)) {
+            $permissions[] = $permission;
+            }
+        }
+
+        // Add role-based permissions
+        $rolePermissions = $this->getPermissionsViaRoles()
+            ->pluck('name')
+            ->toArray();
+
+        // Merge and remove duplicates
+        return array_values(array_unique([...$permissions, ...$rolePermissions]));
     }
 }

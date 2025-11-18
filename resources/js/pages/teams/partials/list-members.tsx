@@ -66,7 +66,10 @@ type ModalContentType = {
 }
 
 // Constants
-const STATUS_CONFIG: Record<TeamMember["status"], (canRemove: boolean, canInvite: boolean) => StatusConfig> = {
+const STATUS_CONFIG: Record<
+  TeamMember["status"],
+  (canRemove: boolean, canInvite: boolean) => StatusConfig
+> = {
   owner: () => ({
     intent: "primary",
     label: "Transfer Ownership",
@@ -127,7 +130,7 @@ function getRouteForAction(action: MemberAction, team: Team, member: TeamMember)
 
 export function ListMembers() {
   const { team, members, auth } = usePage<PageProps>().props
-  const can = usePermissions(auth?.user?.permissions!)
+  const { can } = usePermissions(auth.user.permissions)
   const [modalState, setModalState] = useState<ModalState>({
     open: false,
     member: null,
@@ -156,19 +159,19 @@ export function ListMembers() {
 
   const getStatusConfig = useCallback(
     (status: TeamMember["status"]): StatusConfig => {
-      const canRemove = can("remove users from team")
-      const canInvite = can("invite users to team")
+      const canRemove = can("REMOVE_USERS")
+      const canInvite = can("INVITE_USERS")
       return STATUS_CONFIG[status](canRemove, canInvite)
     },
-    [can]
+    [can],
   )
 
   const modalContent = useMemo(
     () => getModalContent(modalState.action, modalState.member),
-    [modalState.action, modalState.member]
+    [modalState.action, modalState.member],
   )
 
-  const canInvite = can("invite users to team")
+  const canInvite = can("INVITE_USERS")
 
   return (
     <>

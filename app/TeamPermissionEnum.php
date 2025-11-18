@@ -6,6 +6,7 @@ enum TeamPermissionEnum: string
 {
     case UPDATE_TEAM = 'update team';
     case DELETE_TEAM = 'delete team';
+    case LEAVE_TEAM = 'leave team';
     case INVITE_USERS = 'invite users to team';
     case TRANSFER_OWNERSHIP = 'transfer team ownership';
     case REMOVE_USERS = 'remove users from team';

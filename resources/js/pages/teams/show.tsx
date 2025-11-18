@@ -16,17 +16,16 @@ interface Props {
 }
 
 export default function Show({ team, auth }: Props) {
-  const can = usePermissions(auth?.user?.permissions!)
+  const { can } = usePermissions(auth.user.permissions)
   return (
     <>
       <Head title={team.name} />
       <Header title={team.name} />
       <Container>
         <div className="flex flex-col gap-y-6">
-          {can("update_team") && <UpdateTeam team={team} />}
-          {can("leave_team") && <LeaveTeam team={team} />}
-          {can("delete_team") && <DeleteTeam team={team} />}
-          {can("delete_team") && <DeleteTeam team={team} />}
+          {can("UPDATE_TEAM") && <UpdateTeam team={team} />}
+          {can("LEAVE_TEAM") && <LeaveTeam team={team} />}
+          {can("DELETE_TEAM") && <DeleteTeam team={team} />}
 
           <ListMembers />
         </div>
