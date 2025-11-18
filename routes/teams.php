@@ -18,14 +18,17 @@ Route::middleware('auth')->group(function () {
 
    Route::delete('teams/{team}', [Controllers\TeamController::class, 'destroy'])
       ->name('teams.destroy');
-      
+
    Route::post('teams/{team}/invites', [Controllers\TeamInviteController::class, 'store'])
       ->name('team-invites.store');
 
    Route::delete('teams/{team}/invites/{teamInvite}', [Controllers\TeamInviteController::class, 'destroy'])
       ->name('team-invites.destroy');
 
+   Route::get('teams/invites/{token}/accept', [Controllers\TeamInviteController::class, 'accept'])
+      ->name('team-invites.accept')
+      ->middleware('signed');
+
    Route::delete('teams/{team}/member/{user}', [Controllers\TeamMemberController::class, 'destroy'])
       ->name('team-members.destroy');
-
 });

@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\TeamPermissionEnum;
+use App\TeamRoleEnum;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
@@ -14,19 +16,15 @@ class PermissionSeeder extends Seeder
      */
     public function run(): void
     {
-        $adminRole = Role::query()->firstOrCreate(['name' => 'team admin']);
-        $memberRole = Role::query()->firstOrCreate(['name' => 'team member']);
+        $adminRole = Role::firstOrCreate(['name' => TeamRoleEnum::ADMIN]);
+        $memberRole = Role::firstOrCreate(['name' => TeamRoleEnum::MEMBER]);
 
-        $permissions = [
-            'update team',
-            'delete team',
-            'invite users to team',
-            'remove users from team',
-        ];
+        collect(TeamPermissionEnum::cases())
+            ->each(fn($permission) => Permission::firstOrCreate([
+                'name' => $permission->value,
+            ]));
 
-        collect($permissions)->each(fn($item) => Permission::query()->firstOrCreate(['name' => $item]));
-
-        $adminRole->givePermissionTo($permissions);
-        $memberRole->givePermissionTo('invite users to team');
+        $adminRole->syncPermissions(TeamPermissionEnum::adminPermissions());
+        $memberRole->syncPermissions(TeamPermissionEnum::memberPermissions());
     }
 }

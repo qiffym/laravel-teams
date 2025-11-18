@@ -1,4 +1,4 @@
-import { type JSX, useState } from "react"
+import { type JSX, useState, useMemo, useCallback } from "react"
 import {
   Card,
   CardAction,
@@ -45,10 +45,84 @@ type PageProps = {
   auth: Auth
 }
 
+type MemberAction = "cancelInvite" | "remove" | "transfer"
+
 type ModalState = {
   open: boolean
   member: TeamMember | null
-  action: "cancel-invite" | "remove" | "transfer" | null
+  action: MemberAction | null
+}
+
+type StatusConfig = {
+  intent: "primary" | "success" | "warning"
+  label: string
+  isDisabled: boolean
+  icon: JSX.Element
+}
+
+type ModalContentType = {
+  title: string
+  description: string
+}
+
+// Constants
+const STATUS_CONFIG: Record<TeamMember["status"], (canRemove: boolean, canInvite: boolean) => StatusConfig> = {
+  owner: () => ({
+    intent: "primary",
+    label: "Transfer Ownership",
+    isDisabled: true,
+    icon: <ShieldCheckIcon />,
+  }),
+  member: (canRemove) => ({
+    intent: "success",
+    label: "Remove member",
+    isDisabled: !canRemove,
+    icon: <TrashIcon />,
+  }),
+  pending: (_, canInvite) => ({
+    intent: "warning",
+    label: "Cancel invite",
+    isDisabled: !canInvite,
+    icon: <UserMinusIcon />,
+  }),
+}
+
+const ACTION_MAP: Record<TeamMember["status"], MemberAction> = {
+  owner: "transfer",
+  member: "remove",
+  pending: "cancelInvite",
+}
+
+// Helper functions
+function getModalContent(action: MemberAction | null, member: TeamMember | null): ModalContentType {
+  if (!member || !action) return { title: "", description: "" }
+
+  const contentMap: Record<MemberAction, ModalContentType> = {
+    remove: {
+      title: "Remove Member",
+      description: `Are you sure you want to remove ${member.name} from the team?`,
+    },
+    transfer: {
+      title: "Transfer Ownership",
+      description: `Are you sure you want to transfer ownership to ${member.name}?`,
+    },
+    cancelInvite: {
+      title: "Cancel Invitation",
+      description: `Are you sure you want to cancel the invitation for ${member.email}?`,
+    },
+  }
+
+  return contentMap[action]
+}
+
+function getRouteForAction(action: MemberAction, team: Team, member: TeamMember): string {
+  const routeMap: Record<MemberAction, string> = {
+    cancelInvite: route("team-invites.destroy", [team, member]),
+    remove: route("team-members.destroy", [team, member]),
+    transfer: "",
+  }
+
+  return routeMap[action]
 }
 
 export function ListMembers() {
@@ -61,74 +135,40 @@ export function ListMembers() {
   })
   const { delete: destroy, processing } = useForm()
 
-  function openModal(member: TeamMember, action: ModalState["action"]) {
+  const openModal = useCallback((member: TeamMember, action: MemberAction) => {
     setModalState({ open: true, member, action })
-  }
+  }, [])
 
-  function closeModal() {
+  const closeModal = useCallback(() => {
     setModalState({ open: false, member: null, action: null })
-  }
+  }, [])
 
-  function handleAction() {
+  const handleAction = useCallback(() => {
     if (!modalState.member || !modalState.action) return
 
-    const routes = {
-      "cancel-invite": route("team-invites.destroy", [team, modalState.member]),
-      remove: route("team-members.destroy", [team, modalState.member]),
-      transfer: "",
-    }
+    const actionRoute = getRouteForAction(modalState.action, team, modalState.member)
 
-    destroy(routes[modalState.action], {
+    destroy(actionRoute, {
       preserveScroll: true,
-      onSuccess: () => closeModal(),
+      onSuccess: closeModal,
     })
-  }
+  }, [modalState.member, modalState.action, team, destroy, closeModal])
 
-  const getStatusConfig = (status: TeamMember["status"]) => {
-    const configMap = {
-      owner: {
-        intent: "primary",
-        label: "Transfer Ownership",
-        isDisabled: false,
-        icon: <ShieldCheckIcon />,
-      },
-      member: {
-        intent: "success",
-        label: "Remove member",
-        isDisabled: !can("remove users from team"),
-        icon: <TrashIcon />,
-      },
-      pending: {
-        intent: "warning",
-        label: "Cancel invite",
-        isDisabled: !can("invite users to team"),
-        icon: <UserMinusIcon />,
-      },
-    } as const
+  const getStatusConfig = useCallback(
+    (status: TeamMember["status"]): StatusConfig => {
+      const canRemove = can("remove users from team")
+      const canInvite = can("invite users to team")
+      return STATUS_CONFIG[status](canRemove, canInvite)
+    },
+    [can]
+  )
 
-    return configMap[status]
-  }
+  const modalContent = useMemo(
+    () => getModalContent(modalState.action, modalState.member),
+    [modalState.action, modalState.member]
+  )
 
-  const getModalContent = () => {
-    if (!modalState.member || !modalState.action) return { title: "", description: "" }
-
-    const contentMap = {
-      remove: {
-        title: "Remove Member",
-        description: `Are you sure you want to remove ${modalState.member.name} from the team?`,
-      },
-      transfer: {
-        title: "Transfer Ownership",
-        description: `Are you sure you want to transfer ownership to ${modalState.member.name}?`,
-      },
-      "cancel-invite": {
-        title: "Cancel Invitation",
-        description: `Are you sure you want to cancel the invitation for ${modalState.member.email}?`,
-      },
-    }
-
-    return contentMap[modalState.action]
-  }
+  const canInvite = can("invite users to team")
 
   return (
     <>
@@ -136,7 +176,7 @@ export function ListMembers() {
         <CardHeader>
           <CardTitle>Team Members</CardTitle>
           <CardDescription>List of all members in the team</CardDescription>
-          <CardAction>{can("invite users to team") && <InviteMember team={team} />}</CardAction>
+          <CardAction>{canInvite && <InviteMember team={team} />}</CardAction>
         </CardHeader>
         <CardContent>
           <Table
@@ -174,15 +214,15 @@ export function ListMembers() {
         </CardContent>
       </Card>
 
-      <ModalContent isOpen={modalState.open} onOpenChange={closeModal}>
+      <ModalContent isOpen={modalState.open} onOpenChange={closeModal} role="alertdialog">
         <ModalHeader>
-          <ModalTitle>{getModalContent().title}</ModalTitle>
-          <ModalDescription>{getModalContent().description}</ModalDescription>
+          <ModalTitle>{modalContent.title}</ModalTitle>
+          <ModalDescription>{modalContent.description}</ModalDescription>
         </ModalHeader>
         <ModalFooter>
           <ModalClose>Cancel</ModalClose>
           <Button intent="danger" isPending={processing} onPress={handleAction}>
-            {processing ? <Loader /> : getModalContent().title}
+            {processing ? <Loader /> : modalContent.title}
           </Button>
         </ModalFooter>
       </ModalContent>
@@ -190,33 +230,21 @@ export function ListMembers() {
   )
 }
 
-function MemberActions({
-  member,
-  onAction,
-  getStatusConfig,
-}: {
+type MemberActionsProps = {
   member: TeamMember
-  onAction: (member: TeamMember, action: "cancel-invite" | "remove" | "transfer") => void
-  getStatusConfig: (status: TeamMember["status"]) => {
-    intent: string
-    label: string
-    isDisabled: boolean
-    icon: JSX.Element
-  }
-}) {
+  onAction: (member: TeamMember, action: MemberAction) => void
+  getStatusConfig: (status: TeamMember["status"]) => StatusConfig
+}
+
+function MemberActions({ member, onAction, getStatusConfig }: MemberActionsProps) {
   const { label, icon, isDisabled } = getStatusConfig(member.status)
-  console.log(onAction)
+  const action = ACTION_MAP[member.status]
 
-  const getActionType = (status: TeamMember["status"]): "cancel-invite" | "remove" | "transfer" => {
-    const actionMap = {
-      owner: "transfer",
-      member: "remove",
-      pending: "cancel-invite",
-    } as const
+  const handleAction = useCallback(() => {
+    onAction(member, action)
+  }, [member, action, onAction])
 
-    return actionMap[status]
-  }
-  console.log(getActionType(member.status))
+  if (isDisabled) return null
 
   return (
     <div className="text-end last:pr-2.5">
@@ -225,11 +253,7 @@ function MemberActions({
           <EllipsisVerticalIcon />
         </Button>
         <MenuContent aria-label="Actions" placement="left top">
-          <MenuItem
-            intent="danger"
-            isDisabled={isDisabled}
-            onAction={() => onAction(member, getActionType(member.status))}
-          >
+          <MenuItem intent="danger" onAction={handleAction}>
             {icon}
             <span className="ml-1">{label}</span>
           </MenuItem>

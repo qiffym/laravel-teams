@@ -20,7 +20,7 @@ class TeamMemberController extends Controller
 
         $team->members()->detach($user);
         
-        $user->currentTeam()->associate($user->latestOwnedTeam())->save();
+        $user->currentTeam()->associate($user->latestOwnedTeam)->save();
 
         $user->roles()->detach();
 
