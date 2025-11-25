@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Team;
 use App\Models\User;
+use App\TeamPermissionEnum;
 use Illuminate\Auth\Access\Response;
 
 class TeamPolicy
@@ -41,7 +42,7 @@ class TeamPolicy
             return false;
         }
 
-        return $user->can('update team');
+        return $user->can(TeamPermissionEnum::UPDATE_TEAM);
     }
 
     /**
@@ -70,6 +71,6 @@ class TeamPolicy
         if ($user->ownedTeams->count() === 1) {
             return false;
         }
-        return $user->can('delete team');
+        return $user->can(TeamPermissionEnum::DELETE_TEAM);
     }
 }

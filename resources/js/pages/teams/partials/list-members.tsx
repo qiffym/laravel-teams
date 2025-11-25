@@ -21,6 +21,7 @@ import {
 import { Menu, MenuContent, MenuItem } from "@/components/ui/menu"
 import {
   EllipsisVerticalIcon,
+  PaperAirplaneIcon,
   ShieldCheckIcon,
   TrashIcon,
   UserMinusIcon,
@@ -45,19 +46,15 @@ type PageProps = {
   auth: Auth
 }
 
-type MemberAction = "cancelInvite" | "remove" | "transfer"
+type MemberAction = "cancelInvite" | "remove" | "transfer" | "resendInvite"
+
+type MethodAction = "POST" | "DELETE" | "PATCH" | "PUT"
 
 type ModalState = {
   open: boolean
   member: TeamMember | null
   action: MemberAction | null
-}
-
-type StatusConfig = {
-  intent: "primary" | "success" | "warning"
-  label: string
-  isDisabled: boolean
-  icon: JSX.Element
+  method: MethodAction | null
 }
 
 type ModalContentType = {
@@ -65,38 +62,25 @@ type ModalContentType = {
   description: string
 }
 
-// Constants
-const STATUS_CONFIG: Record<
-  TeamMember["status"],
-  (canRemove: boolean, canInvite: boolean) => StatusConfig
-> = {
-  owner: () => ({
-    intent: "primary",
-    label: "Transfer Ownership",
-    isDisabled: true,
-    icon: <ShieldCheckIcon />,
-  }),
-  member: (canRemove) => ({
-    intent: "success",
-    label: "Remove member",
-    isDisabled: !canRemove,
-    icon: <TrashIcon />,
-  }),
-  pending: (_, canInvite) => ({
-    intent: "warning",
-    label: "Cancel invite",
-    isDisabled: !canInvite,
-    icon: <UserMinusIcon />,
-  }),
-}
-
-const ACTION_MAP: Record<TeamMember["status"], MemberAction> = {
-  owner: "transfer",
-  member: "remove",
-  pending: "cancelInvite",
+type ActionConfig = {
+  action: MemberAction
+  label: string
+  icon: JSX.Element
+  method: MethodAction
+  intent?: "danger" | "warning" | undefined
 }
 
 // Helper functions
+function getStatusBadge(status: TeamMember["status"]): "success" | "primary" | "warning" {
+  const statusMap: Record<TeamMember["status"], "success" | "primary" | "warning"> = {
+    owner: "primary",
+    member: "success",
+    pending: "warning",
+  }
+
+  return statusMap[status] || "default"
+}
+
 function getModalContent(action: MemberAction | null, member: TeamMember | null): ModalContentType {
   if (!member || !action) return { title: "", description: "" }
 
@@ -113,6 +97,10 @@ function getModalContent(action: MemberAction | null, member: TeamMember | null)
       title: "Cancel Invitation",
       description: `Are you sure you want to cancel the invitation for ${member.email}?`,
     },
+    resendInvite: {
+      title: "Resend Invitation",
+      description: `Are you sure you want to resend the invitation to ${member.email}?`,
+    },
   }
 
   return contentMap[action]
@@ -121,11 +109,65 @@ function getModalContent(action: MemberAction | null, member: TeamMember | null)
 function getRouteForAction(action: MemberAction, team: Team, member: TeamMember): string {
   const routeMap: Record<MemberAction, string> = {
     cancelInvite: route("team-invites.destroy", [team, member]),
+    resendInvite: route("team-invites.resend", [team, member]),
     remove: route("team-members.destroy", [team, member]),
     transfer: "",
   }
 
   return routeMap[action]
+}
+
+function getAvailableActions(
+  status: TeamMember["status"],
+  canRemove: boolean,
+  canInvite: boolean,
+): ActionConfig[] {
+  const actionsMap: Record<TeamMember["status"], ActionConfig[]> = {
+    owner: [
+      {
+        action: "transfer",
+        label: "Transfer Ownership",
+        icon: <ShieldCheckIcon />,
+        intent: "warning",
+        method: "PATCH",
+      },
+    ],
+    member: [
+      {
+        action: "remove",
+        label: "Remove member",
+        icon: <TrashIcon />,
+        intent: "danger",
+        method: "DELETE",
+      },
+    ],
+    pending: [
+      {
+        action: "resendInvite",
+        label: "Resend invitation",
+        icon: <PaperAirplaneIcon />,
+        method: "POST",
+      },
+      {
+        action: "cancelInvite",
+        label: "Cancel invitation",
+        icon: <UserMinusIcon />,
+        intent: "danger",
+        method: "DELETE",
+      },
+    ],
+  }
+
+  const actions = actionsMap[status] || []
+
+  // Filter actions based on permissions
+  return actions.filter((actionConfig) => {
+    if (actionConfig.action === "transfer") return false
+    if (actionConfig.action === "remove") return canRemove
+    if (actionConfig.action === "cancelInvite" || actionConfig.action === "resendInvite")
+      return canInvite
+    return true
+  })
 }
 
 export function ListMembers() {
@@ -135,36 +177,36 @@ export function ListMembers() {
     open: false,
     member: null,
     action: null,
+    method: null,
   })
-  const { delete: destroy, processing } = useForm()
+  const { post, processing, transform } = useForm()
 
-  const openModal = useCallback((member: TeamMember, action: MemberAction) => {
-    setModalState({ open: true, member, action })
-  }, [])
+  const openModal = useCallback(
+    (member: TeamMember, action: MemberAction, method: MethodAction | null) => {
+      setModalState({ open: true, member, action, method })
+    },
+    [],
+  )
 
   const closeModal = useCallback(() => {
-    setModalState({ open: false, member: null, action: null })
+    setModalState({ open: false, member: null, action: null, method: null })
   }, [])
 
   const handleAction = useCallback(() => {
-    if (!modalState.member || !modalState.action) return
+    if (!modalState.member || !modalState.action || !modalState.method) return
 
     const actionRoute = getRouteForAction(modalState.action, team, modalState.member)
 
-    destroy(actionRoute, {
+    transform((data) => ({
+      ...data,
+      _method: modalState.method,
+    }))
+
+    post(actionRoute, {
       preserveScroll: true,
       onSuccess: closeModal,
     })
-  }, [modalState.member, modalState.action, team, destroy, closeModal])
-
-  const getStatusConfig = useCallback(
-    (status: TeamMember["status"]): StatusConfig => {
-      const canRemove = can("REMOVE_USERS")
-      const canInvite = can("INVITE_USERS")
-      return STATUS_CONFIG[status](canRemove, canInvite)
-    },
-    [can],
-  )
+  }, [modalState.member, modalState.action, team, post, closeModal])
 
   const modalContent = useMemo(
     () => getModalContent(modalState.action, modalState.member),
@@ -199,14 +241,15 @@ export function ListMembers() {
                   <TableCell>{member.name}</TableCell>
                   <TableCell>{member.email}</TableCell>
                   <TableCell>
-                    <Badge intent={getStatusConfig(member.status).intent}>{member.status}</Badge>
+                    <Badge intent={getStatusBadge(member.status)}>{member.status}</Badge>
                   </TableCell>
                   <TableCell>
                     {member.email !== auth.user.email && (
                       <MemberActions
                         member={member}
                         onAction={openModal}
-                        getStatusConfig={getStatusConfig}
+                        canRemove={can("REMOVE_USERS")}
+                        canInvite={can("INVITE_USERS")}
                       />
                     )}
                   </TableCell>
@@ -235,19 +278,25 @@ export function ListMembers() {
 
 type MemberActionsProps = {
   member: TeamMember
-  onAction: (member: TeamMember, action: MemberAction) => void
-  getStatusConfig: (status: TeamMember["status"]) => StatusConfig
+  onAction: (member: TeamMember, action: MemberAction, method: MethodAction) => void
+  canRemove: boolean
+  canInvite: boolean
 }
 
-function MemberActions({ member, onAction, getStatusConfig }: MemberActionsProps) {
-  const { label, icon, isDisabled } = getStatusConfig(member.status)
-  const action = ACTION_MAP[member.status]
+function MemberActions({ member, onAction, canRemove, canInvite }: MemberActionsProps) {
+  const availableActions = useMemo(
+    () => getAvailableActions(member.status, canRemove, canInvite),
+    [member.status, canRemove, canInvite],
+  )
 
-  const handleAction = useCallback(() => {
-    onAction(member, action)
-  }, [member, action, onAction])
+  const handleAction = useCallback(
+    (action: MemberAction, method: MethodAction) => {
+      onAction(member, action, method)
+    },
+    [member, onAction],
+  )
 
-  if (isDisabled) return null
+  if (availableActions.length === 0) return null
 
   return (
     <div className="text-end last:pr-2.5">
@@ -256,10 +305,16 @@ function MemberActions({ member, onAction, getStatusConfig }: MemberActionsProps
           <EllipsisVerticalIcon />
         </Button>
         <MenuContent aria-label="Actions" placement="left top">
-          <MenuItem intent="danger" onAction={handleAction}>
-            {icon}
-            <span className="ml-1">{label}</span>
-          </MenuItem>
+          {availableActions.map((actionConfig) => (
+            <MenuItem
+              key={actionConfig.action}
+              intent={actionConfig.intent}
+              onAction={() => handleAction(actionConfig.action, actionConfig.method)}
+            >
+              {actionConfig.icon}
+              <span className="ml-1">{actionConfig.label}</span>
+            </MenuItem>
+          ))}
         </MenuContent>
       </Menu>
     </div>

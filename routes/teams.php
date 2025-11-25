@@ -22,6 +22,9 @@ Route::middleware('auth')->group(function () {
    Route::post('teams/{team}/invites', [Controllers\TeamInviteController::class, 'store'])
       ->name('team-invites.store');
 
+   Route::post('teams/{team}/invites/{teamInvite}/resend', [Controllers\TeamInviteController::class, 'resend'])
+      ->name('team-invites.resend');
+
    Route::delete('teams/{team}/invites/{teamInvite}', [Controllers\TeamInviteController::class, 'destroy'])
       ->name('team-invites.destroy');
 

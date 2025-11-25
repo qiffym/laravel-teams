@@ -66,6 +66,23 @@ class TeamInviteController extends Controller
         return back();
     }
 
+    /**
+     * Resend a team invitation.
+     */
+    public function resend(Team $team, TeamInvite $teamInvite)
+    {
+        Gate::authorize('invite users to team');
+
+        Mail::to($teamInvite->email)->send(new TeamInvitation($teamInvite));
+
+        flash('The invitation has been resent!');
+
+        return back();
+    }
+
+    /**
+     * Accept a team invitation.
+     */
     public function accept(Request $request, string $token)
     {
         $invite = TeamInvite::where('token', $token)->firstOrFail();
